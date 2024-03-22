@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as cheerio from 'cheerio';
-import { extractPrice } from "../utils";
+import { extractCurrency, extractDescription, extractPrice } from "../utils";
 
 export async function scrapeAmazonProduct(url: string) {
   if (!url) return
@@ -26,6 +26,7 @@ export async function scrapeAmazonProduct(url: string) {
     const $ = cheerio.load(response.data);
 
     const title = $('#productTitle').text().trim();
+
     const currentPrice = extractPrice(
       $('.priceToPay span.a-price-whole'),
       $('a.size.base.a-color-price'),
@@ -37,11 +38,44 @@ export async function scrapeAmazonProduct(url: string) {
       $('.a-price.a-text-price span.a-offscreen')
     );
 
-    const avgReviews = $('span.a-size-base.a-color-base', '#averageCustomerReviews').text().trim();
-    console.log(title);
-    console.log(currentPrice)
-    console.log(originalPrice)
-    console.log(avgReviews)
+    const discountPercentage = $('.savingsPercentage').text().replace(/[-%]/g, '');
+
+    const avgReviews = $('span.a-size-base.a-color-base', '#averageCustomerReviews').text().trim().slice(0, 3) ||
+      $('#averageCustomerReviews span.a-size-base.a-color-base').text().trim().slice(0, 3);
+
+    const isAvailable = $('#availability span').text().trim().toLowerCase() === 'stokta var';
+
+    const images = $('#imgBlkFront').attr('data-a-dynamic-image') ||
+      $('#landingImage').attr('data-a-dynamic-image') || '{}';
+
+    const imageUrls = Object.keys(JSON.parse(images));
+
+    const currency = extractCurrency($('.a-price-symbol'));
+
+    const description = extractDescription($)
+
+    const reviewsCount = $('#acrCustomerReviewLink span').text().trim();
+
+    const data = {
+      url,
+      title,
+      avgReviews,
+      isAvailable,
+      description,
+      currency: currency || '$',
+      image: imageUrls[0],
+      priceHistory: [],
+      currentPrice: Number(currentPrice) || Number(originalPrice),
+      originalPrice: Number(originalPrice) || Number(currentPrice),
+      discountPercentage: Number(discountPercentage),
+      lowestPrice: Number(currentPrice) || Number(originalPrice),
+      highestPrice: Number(originalPrice) || Number(currentPrice),
+      averagePrice: Number(currentPrice) || Number(originalPrice),
+      category: 'category',
+      reviewsCount: 100,
+    };
+
+    return data;
   } catch (error: any) {
     throw new Error(`Failed to scrape product ${error.message}`);
   }
