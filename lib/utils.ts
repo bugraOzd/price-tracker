@@ -4,7 +4,7 @@ export function extractPrice(...elements: any) {
   for (const element of elements) {
     const priceText = element.text().trim();
 
-    if (priceText) return priceText.replace(/,.*/, '').replace(/[^\d.]/g, '');
+    if (priceText) return priceText.replace(/[^\d.]/g, '');
 
     return '';
   }
@@ -68,3 +68,10 @@ export function getAveragePrice(priceList: PriceHistoryItem[]) {
 
   return averagePrice;
 }
+
+export const formatNumber = (num: number = 0) => {
+  return num.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+};
